@@ -173,12 +173,13 @@ router.put('/:id', auth_1.requireAuth, (0, auth_1.requirePermission)('bom:update
                 await tx.bomComponent.deleteMany({ where: { bomHeaderId: id } });
                 for (let i = 0; i < components.length; i++) {
                     const comp = components[i];
+                    const compMat = await tx.material.findUnique({ where: { id: comp.componentMaterialId } });
                     await tx.bomComponent.create({
                         data: {
                             bomHeaderId: id,
                             componentMaterialId: comp.componentMaterialId,
                             quantityPerUnit: comp.quantityPerUnit,
-                            uomId: comp.uomId,
+                            uomId: comp.uomId || compMat?.uomId,
                             scrapFactor: comp.scrapFactor || 0,
                             sequence: i + 1,
                             companyId: existingBom.companyId,
