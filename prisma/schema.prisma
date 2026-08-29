@@ -1,0 +1,1126 @@
+datasource db {
+  provider = "sqlite"
+  url      = "file:./dev.db"
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model Company {
+  id           String   @id @default(uuid())
+  companyCode  String   @unique @map("company_code")
+  legalName    String   @map("legal_name")
+  displayName  String   @map("display_name")
+  legalDetails String?  @map("legal_details")
+  status       String   @default("ACTIVE")
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+  createdBy    String?  @map("created_by")
+  updatedBy    String?  @map("updated_by")
+
+  users                 User[]
+  plants                Plant[]
+  auditLogs             AuditLog[]
+  transactionReferences TransactionReference[]
+  documentAttachments   DocumentAttachment[]
+  workflowDefinitions   WorkflowDefinition[]
+  uoms                  Uom[]
+  materialCategories    MaterialCategory[]
+  suppliers             Supplier[]
+  materials             Material[]
+  warehouses            Warehouse[]
+  storageBins           StorageBin[]
+  purchaseRequisitions  PurchaseRequisition[]
+  purchaseOrders        PurchaseOrder[]
+  gateEntries           GateEntry[]
+  goodsReceiptNotes     GoodsReceiptNote[]
+  qaInspections         QaInspection[]
+  stockBalances         StockBalance[]
+  stockTransactions     StockTransaction[]
+  bomHeaders            BomHeader[]
+  bomComponents         BomComponent[]
+  workOrders            WorkOrder[]
+  materialReservations  MaterialReservation[]
+  materialIssues        MaterialIssue[]
+  productionExecutions  ProductionExecution[]
+  productionReceipts    ProductionReceipt[]
+  inProcessQaInspections InProcessQaInspection[]
+  nonConformanceReports  NonConformanceReport[]
+  inventoryTransferOrders InventoryTransferOrder[]
+
+  @@map("companies")
+}
+
+model Plant {
+  id        String   @id @default(uuid())
+  plantCode String   @unique @map("plant_code")
+  companyId String   @map("company_id")
+  plantName String   @map("plant_name")
+  location  String?
+  address   String?
+  timezone  String   @default("Asia/Kolkata")
+  status    String   @default("ACTIVE")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  company               Company                @relation(fields: [companyId], references: [id], onDelete: Restrict)
+  departments           Department[]
+  userPlantAccess       UserPlantAccess[]
+  auditLogs             AuditLog[]
+  transactionReferences TransactionReference[]
+  documentAttachments   DocumentAttachment[]
+  workflowDefinitions   WorkflowDefinition[]
+  warehouses            Warehouse[]
+  storageBins           StorageBin[]
+  purchaseRequisitions  PurchaseRequisition[]
+  purchaseOrders        PurchaseOrder[]
+  gateEntries           GateEntry[]
+  goodsReceiptNotes     GoodsReceiptNote[]
+  qaInspections         QaInspection[]
+  stockBalances         StockBalance[]
+  stockTransactions     StockTransaction[]
+  bomHeaders            BomHeader[]
+  bomComponents         BomComponent[]
+  workOrders            WorkOrder[]
+  materialReservations  MaterialReservation[]
+  materialIssues        MaterialIssue[]
+  productionExecutions  ProductionExecution[]
+  productionReceipts    ProductionReceipt[]
+  inProcessQaInspections InProcessQaInspection[]
+  nonConformanceReports  NonConformanceReport[]
+  sourceTransferOrders   InventoryTransferOrder[] @relation("SourcePlantTransfers")
+  targetTransferOrders   InventoryTransferOrder[] @relation("TargetPlantTransfers")
+
+  @@map("plants")
+}
+
+model Department {
+  id             String   @id @default(uuid())
+  departmentCode String   @unique @map("department_code")
+  plantId        String   @map("plant_id")
+  departmentName String   @map("department_name")
+  status         String   @default("ACTIVE")
+  createdAt      DateTime @default(now()) @map("created_at")
+  updatedAt      DateTime @updatedAt @map("updated_at")
+
+  plant                 Plant                  @relation(fields: [plantId], references: [id], onDelete: Restrict)
+  userDepartmentAccess UserDepartmentAccess[]
+  auditLogs             AuditLog[]
+  transactionReferences TransactionReference[]
+  purchaseRequisitions  PurchaseRequisition[]
+  purchaseOrders        PurchaseOrder[]
+  workOrders            WorkOrder[]
+  inProcessQaInspections InProcessQaInspection[]
+  nonConformanceReports  NonConformanceReport[]
+
+  @@map("departments")
+}
+
+model User {
+  id           String    @id @default(uuid())
+  companyId    String?   @map("company_id")
+  email        String    @unique
+  passwordHash String    @map("password_hash")
+  firstName    String    @map("first_name")
+  lastName     String    @map("last_name")
+  phone        String?
+  mfaEnabled   Boolean   @default(false) @map("mfa_enabled")
+  mfaSecret    String?   @map("mfa_secret")
+  status       String    @default("ACTIVE")
+  lastLoginAt  DateTime? @map("last_login_at")
+  createdAt    DateTime  @default(now()) @map("created_at")
+  updatedAt    DateTime  @updatedAt @map("updated_at")
+
+  company              Company?               @relation(fields: [companyId], references: [id], onDelete: SetNull)
+  userRoles            UserRole[]
+  userPlantAccess      UserPlantAccess[]
+  userDepartmentAccess UserDepartmentAccess[]
+  auditLogs            AuditLog[]
+  notifications        Notification[]
+  uploadedDocuments    DocumentAttachment[]
+  userSessions         UserSession[]
+  prRequested          PurchaseRequisition[]  @relation("PrRequester")
+  prApproved           PurchaseRequisition[]  @relation("PrApprover")
+  poBought             PurchaseOrder[]        @relation("PoBuyer")
+  poApproved           PurchaseOrder[]        @relation("PoApprover")
+  gateEntries          GateEntry[]            @relation("GateUser")
+  grnReceived          GoodsReceiptNote[]     @relation("GrnReceiver")
+  qaInspections        QaInspection[]         @relation("QaInspector")
+  stockTransactions    StockTransaction[]     @relation("StockUser")
+  materialIssued       MaterialIssue[]        @relation("MaterialIssuer")
+  productionExecuted   ProductionExecution[]  @relation("ProductionOperator")
+  productionReceived   ProductionReceipt[]    @relation("ProductionReceiver")
+  ipqcInspections      InProcessQaInspection[] @relation("IpqcInspector")
+  ncrAssigned          NonConformanceReport[]  @relation("NcrAssignedUser")
+  ncrApproved          NonConformanceReport[]  @relation("NcrApprover")
+  transferRequested    InventoryTransferOrder[] @relation("TransferRequester")
+  transferApproved     InventoryTransferOrder[] @relation("TransferApprover")
+  transferIssued       InventoryTransferOrder[] @relation("TransferIssuer")
+  transferReceived     InventoryTransferOrder[] @relation("TransferReceiver")
+
+  @@map("users")
+}
+
+model UserSession {
+  id        String    @id @default(uuid())
+  userId    String    @map("user_id")
+  tokenHash String    @unique @map("token_hash")
+  ipAddress String?   @map("ip_address")
+  userAgent String?   @map("user_agent")
+  expiresAt DateTime  @map("expires_at")
+  revokedAt DateTime? @map("revoked_at")
+  createdAt DateTime  @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("user_sessions")
+}
+
+model Role {
+  id          String   @id @default(uuid())
+  roleName    String   @unique @map("role_name")
+  description String?
+  status      String   @default("ACTIVE")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  userRoles       UserRole[]
+  rolePermissions RolePermission[]
+
+  @@map("roles")
+}
+
+model Permission {
+  id             String   @id @default(uuid())
+  permissionCode String   @unique @map("permission_code")
+  module         String
+  action         String
+  description    String?
+  createdAt      DateTime @default(now()) @map("created_at")
+  updatedAt      DateTime @updatedAt @map("updated_at")
+
+  rolePermissions RolePermission[]
+
+  @@map("permissions")
+}
+
+model UserRole {
+  userId     String   @map("user_id")
+  roleId     String   @map("role_id")
+  assignedAt DateTime @default(now()) @map("assigned_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role Role @relation(fields: [roleId], references: [id], onDelete: Cascade)
+
+  @@id([userId, roleId])
+  @@map("user_roles")
+}
+
+model RolePermission {
+  roleId       String   @map("role_id")
+  permissionId String   @map("permission_id")
+  assignedAt   DateTime @default(now()) @map("assigned_at")
+
+  role       Role       @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  permission Permission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
+
+  @@id([roleId, permissionId])
+  @@map("role_permissions")
+}
+
+model UserPlantAccess {
+  userId    String   @map("user_id")
+  plantId   String   @map("plant_id")
+  grantedAt DateTime @default(now()) @map("granted_at")
+
+  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  plant Plant @relation(fields: [plantId], references: [id], onDelete: Cascade)
+
+  @@id([userId, plantId])
+  @@map("user_plant_access")
+}
+
+model UserDepartmentAccess {
+  userId       String   @map("user_id")
+  departmentId String   @map("department_id")
+  grantedAt    DateTime @default(now()) @map("granted_at")
+
+  user       User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  department Department @relation(fields: [departmentId], references: [id], onDelete: Cascade)
+
+  @@id([userId, departmentId])
+  @@map("user_department_access")
+}
+
+model AuditLog {
+  id            String   @id @default(uuid())
+  timestamp     DateTime @default(now())
+  userId        String?  @map("user_id")
+  userEmail     String?  @map("user_email")
+  companyId     String?  @map("company_id")
+  plantId       String?  @map("plant_id")
+  departmentId  String?  @map("department_id")
+  entity        String
+  recordId      String   @map("record_id")
+  action        String
+  oldValues     String?  @map("old_values")
+  newValues     String?  @map("new_values")
+  reason        String?
+  ipAddress     String?  @map("ip_address")
+  userAgent     String?  @map("user_agent")
+  correlationId String?  @map("correlation_id")
+
+  user       User?       @relation(fields: [userId], references: [id], onDelete: SetNull)
+  company    Company?    @relation(fields: [companyId], references: [id], onDelete: SetNull)
+  plant      Plant?      @relation(fields: [plantId], references: [id], onDelete: SetNull)
+  department Department? @relation(fields: [departmentId], references: [id], onDelete: SetNull)
+
+  @@index([entity, recordId])
+  @@index([userId])
+  @@index([companyId, plantId])
+  @@map("audit_logs")
+}
+
+model TransactionReference {
+  id              String   @id @default(uuid())
+  sourceEntity    String   @map("source_entity")
+  sourceRecordId  String   @map("source_record_id")
+  targetEntity    String   @map("target_entity")
+  targetRecordId  String   @map("target_record_id")
+  referenceType   String   @map("reference_type")
+  referenceNumber String?  @map("reference_number")
+  companyId       String?  @map("company_id")
+  plantId         String?  @map("plant_id")
+  departmentId    String?  @map("department_id")
+  createdBy       String?  @map("created_by")
+  createdAt       DateTime @default(now()) @map("created_at")
+
+  company    Company?    @relation(fields: [companyId], references: [id], onDelete: SetNull)
+  plant      Plant?      @relation(fields: [plantId], references: [id], onDelete: SetNull)
+  department Department? @relation(fields: [departmentId], references: [id], onDelete: SetNull)
+
+  @@index([sourceEntity, sourceRecordId])
+  @@index([targetEntity, targetRecordId])
+  @@map("transaction_references")
+}
+
+model Notification {
+  id        String    @id @default(uuid())
+  userId    String    @map("user_id")
+  title     String
+  message   String
+  channel   String    @default("IN_APP")
+  status    String    @default("UNREAD")
+  entity    String?
+  recordId  String?   @map("record_id")
+  metadata  String?
+  createdAt DateTime  @default(now()) @map("created_at")
+  readAt    DateTime? @map("read_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, status])
+  @@map("notifications")
+}
+
+model DocumentAttachment {
+  id         String   @id @default(uuid())
+  entity     String
+  recordId   String   @map("record_id")
+  fileName   String   @map("file_name")
+  fileType   String   @map("file_type")
+  fileSize   Int      @map("file_size")
+  filePath   String   @map("file_path")
+  uploadedBy String?  @map("uploaded_by")
+  companyId  String?  @map("company_id")
+  plantId    String?  @map("plant_id")
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  user    User?    @relation(fields: [uploadedBy], references: [id], onDelete: SetNull)
+  company Company? @relation(fields: [companyId], references: [id], onDelete: SetNull)
+  plant   Plant?   @relation(fields: [plantId], references: [id], onDelete: SetNull)
+
+  @@index([entity, recordId])
+  @@map("document_attachments")
+}
+
+model WorkflowDefinition {
+  id           String   @id @default(uuid())
+  workflowCode String   @unique @map("workflow_code")
+  name         String
+  entityType   String   @map("entity_type")
+  companyId    String?  @map("company_id")
+  plantId      String?  @map("plant_id")
+  stepsJson    String   @map("steps_json")
+  status       String   @default("ACTIVE")
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  company   Company?           @relation(fields: [companyId], references: [id], onDelete: SetNull)
+  plant     Plant?             @relation(fields: [plantId], references: [id], onDelete: SetNull)
+  instances WorkflowInstance[]
+
+  @@map("workflow_definitions")
+}
+
+model WorkflowInstance {
+  id                   String   @id @default(uuid())
+  workflowDefinitionId String   @map("workflow_definition_id")
+  entityType           String   @map("entity_type")
+  entityRecordId       String   @map("entity_record_id")
+  currentStep          String   @map("current_step")
+  status               String   @default("PENDING")
+  historyJson          String?  @map("history_json")
+  createdBy            String?  @map("created_by")
+  createdAt            DateTime @default(now()) @map("created_at")
+  updatedAt            DateTime @updatedAt @map("updated_at")
+
+  definition WorkflowDefinition @relation(fields: [workflowDefinitionId], references: [id], onDelete: Restrict)
+
+  @@index([entityType, entityRecordId])
+  @@map("workflow_instances")
+}
+
+model EventOutbox {
+  id            String    @id @default(uuid())
+  eventType     String    @map("event_type")
+  aggregateType String    @map("aggregate_type")
+  aggregateId   String    @map("aggregate_id")
+  payloadJson   String    @map("payload_json")
+  status        String    @default("PENDING")
+  retryCount    Int       @default(0) @map("retry_count")
+  errorMessage  String?   @map("error_message")
+  createdAt     DateTime  @default(now()) @map("created_at")
+  publishedAt   DateTime? @map("published_at")
+
+  @@index([status])
+  @@map("event_outbox")
+}
+
+// SPRINT 02 GOLDEN FLOW MODELS
+
+model Uom {
+  id          String   @id @default(uuid())
+  uomCode     String   @map("uom_code")
+  name        String
+  description String?
+  companyId   String   @map("company_id")
+  status      String   @default("ACTIVE")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+  createdBy   String?  @map("created_by")
+
+  company              Company               @relation(fields: [companyId], references: [id], onDelete: Restrict)
+  materials            Material[]
+  purchaseRequisitions PurchaseRequisition[]
+  purchaseOrders       PurchaseOrder[]
+  goodsReceiptNotes    GoodsReceiptNote[]
+  stockTransactions    StockTransaction[]
+  bomComponents        BomComponent[]
+  workOrders           WorkOrder[]
+  materialIssues       MaterialIssue[]
+  productionReceipts   ProductionReceipt[]
+  ipqcInspections      InProcessQaInspection[]
+  nonConformanceReports NonConformanceReport[]
+  inventoryTransfers   InventoryTransferOrder[]
+
+  @@unique([companyId, uomCode])
+  @@map("uoms")
+}
+
+model MaterialCategory {
+  id           String   @id @default(uuid())
+  categoryCode String   @map("category_code")
+  categoryName String   @map("category_name")
+  description  String?
+  companyId    String   @map("company_id")
+  status       String   @default("ACTIVE")
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+  createdBy    String?  @map("created_by")
+
+  company   Company    @relation(fields: [companyId], references: [id], onDelete: Restrict)
+  materials Material[]
+
+  @@unique([companyId, categoryCode])
+  @@map("material_categories")
+}
+
+model Supplier {
+  id            String   @id @default(uuid())
+  supplierCode  String   @map("supplier_code")
+  legalName     String   @map("legal_name")
+  displayName   String   @map("display_name")
+  address       String?
+  contactPerson String?  @map("contact_person")
+  email         String?
+  phone         String?
+  gstTaxId      String?  @map("gst_tax_id")
+  paymentTerms  String?  @map("payment_terms")
+  companyId     String   @map("company_id")
+  status        String   @default("ACTIVE")
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+  createdBy     String?  @map("created_by")
+
+  company           Company            @relation(fields: [companyId], references: [id], onDelete: Restrict)
+  purchaseOrders    PurchaseOrder[]
+  gateEntries       GateEntry[]
+  goodsReceiptNotes GoodsReceiptNote[]
+
+  @@unique([companyId, supplierCode])
+  @@map("suppliers")
+}
+
+model Material {
+  id                   String   @id @default(uuid())
+  materialCode         String   @map("material_code")
+  description          String
+  categoryId           String   @map("category_id")
+  uomId                String   @map("uom_id")
+  materialType         String   @default("RAW_MATERIAL") @map("material_type")
+  isPurchaseApplicable Boolean  @default(true) @map("is_purchase_applicable")
+  isQaApplicable       Boolean  @default(true) @map("is_qa_applicable")
+  isStockApplicable    Boolean  @default(true) @map("is_stock_applicable")
+  companyId            String   @map("company_id")
+  status               String   @default("ACTIVE")
+  createdAt            DateTime @default(now()) @map("created_at")
+  updatedAt            DateTime @updatedAt @map("updated_at")
+  createdBy            String?  @map("created_by")
+
+  company              Company               @relation(fields: [companyId], references: [id], onDelete: Restrict)
+  category             MaterialCategory      @relation(fields: [categoryId], references: [id], onDelete: Restrict)
+  uom                  Uom                   @relation(fields: [uomId], references: [id], onDelete: Restrict)
+  purchaseRequisitions PurchaseRequisition[]
+  purchaseOrders       PurchaseOrder[]
+  gateEntries          GateEntry[]
+  goodsReceiptNotes    GoodsReceiptNote[]
+  qaInspections        QaInspection[]
+  stockBalances        StockBalance[]
+  stockTransactions    StockTransaction[]
+  finishedBoms         BomHeader[]            @relation("FinishedMaterial")
+  componentBoms        BomComponent[]         @relation("ComponentMaterial")
+  workOrders           WorkOrder[]            @relation("WoFinishedMaterial")
+  materialReservations MaterialReservation[]  @relation("ReservedMaterial")
+  materialIssues       MaterialIssue[]        @relation("IssuedMaterial")
+  productionExecutions ProductionExecution[]  @relation("ExecutionFinishedMaterial")
+  productionReceipts   ProductionReceipt[]    @relation("ReceiptFinishedMaterial")
+  ipqcInspections      InProcessQaInspection[]
+  nonConformanceReports NonConformanceReport[]
+  inventoryTransfers   InventoryTransferOrder[]
+
+  @@unique([companyId, materialCode])
+  @@map("materials")
+}
+
+model Warehouse {
+  id            String   @id @default(uuid())
+  warehouseCode String   @map("warehouse_code")
+  name          String
+  plantId       String   @map("plant_id")
+  companyId     String   @map("company_id")
+  status        String   @default("ACTIVE")
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+  createdBy     String?  @map("created_by")
+
+  plant             Plant              @relation(fields: [plantId], references: [id], onDelete: Restrict)
+  company           Company            @relation(fields: [companyId], references: [id], onDelete: Restrict)
+  storageBins       StorageBin[]
+  goodsReceiptNotes GoodsReceiptNote[]
+  stockBalances     StockBalance[]
+  stockTransactions StockTransaction[]
+  materialReservations MaterialReservation[]
+  materialIssues    MaterialIssue[]
+  productionReceipts ProductionReceipt[]
+  sourceTransferOrders InventoryTransferOrder[] @relation("SourceWarehouseTransfers")
+  targetTransferOrders InventoryTransferOrder[] @relation("TargetWarehouseTransfers")
+
+  @@unique([plantId, warehouseCode])
+  @@map("warehouses")
+}
+
+model StorageBin {
+  id          String   @id @default(uuid())
+  binCode     String   @map("bin_code")
+  name        String
+  warehouseId String   @map("warehouse_id")
+  plantId     String   @map("plant_id")
+  companyId   String   @map("company_id")
+  status      String   @default("ACTIVE")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+  createdBy   String?  @map("created_by")
+
+  warehouse         Warehouse          @relation(fields: [warehouseId], references: [id], onDelete: Restrict)
+  plant             Plant              @relation(fields: [plantId], references: [id], onDelete: Restrict)
+  company           Company            @relation(fields: [companyId], references: [id], onDelete: Restrict)
+  stockBalances     StockBalance[]
+  stockTransactions StockTransaction[]
+  materialReservations MaterialReservation[]
+  materialIssues    MaterialIssue[]
+  productionReceipts ProductionReceipt[]
+  sourceBinTransfers InventoryTransferOrder[] @relation("SourceBinTransfers")
+  targetBinTransfers InventoryTransferOrder[] @relation("TargetBinTransfers")
+
+  @@unique([warehouseId, binCode])
+  @@map("storage_bins")
+}
+
+model PurchaseRequisition {
+  id               String    @id @default(uuid())
+  prNumber         String    @unique @map("pr_number")
+  companyId        String    @map("company_id")
+  plantId          String    @map("plant_id")
+  departmentId     String    @map("department_id")
+  requesterId      String    @map("requester_id")
+  materialId       String    @map("material_id")
+  quantity         Float
+  uomId            String    @map("uom_id")
+  requiredDate     DateTime  @map("required_date")
+  purposeReason    String    @map("purpose_reason")
+  costCenter       String?   @map("cost_center")
+  budgetReference  String?   @map("budget_reference")
+  status           String    @default("DRAFT") @map("status")
+  approvalStatus   String    @default("PENDING") @map("approval_status")
+  approvedById     String?   @map("approved_by_id")
+  approvedAt       DateTime? @map("approved_at")
+  approvalReason   String?   @map("approval_reason")
+  cancelReason     String?   @map("cancel_reason")
+  createdAt        DateTime  @default(now()) @map("created_at")
+  updatedAt        DateTime  @updatedAt @map("updated_at")
+  createdBy        String?   @map("created_by")
+
+  company        Company         @relation(fields: [companyId], references: [id], onDelete: Restrict)
+  plant          Plant           @relation(fields: [plantId], references: [id], onDelete: Restrict)
+  department     Department      @relation(fields: [departmentId], references: [id], onDelete: Restrict)
+  requester      User            @relation("PrRequester", fields: [requesterId], references: [id], onDelete: Restrict)
+  approver       User?           @relation("PrApprover", fields: [approvedById], references: [id], onDelete: SetNull)
+  material       Material        @relation(fields: [materialId], references: [id], onDelete: Restrict)
+  uom            Uom             @relation(fields: [uomId], references: [id], onDelete: Restrict)
+  purchaseOrders PurchaseOrder[]
+
+  @@map("purchase_requisitions")
+}
+
+model PurchaseOrder {
+  id               String    @id @default(uuid())
+  poNumber         String    @unique @map("po_number")
+  prId             String?   @map("pr_id")
+  supplierId       String    @map("supplier_id")
+  buyerId          String    @map("buyer_id")
+  companyId        String    @map("company_id")
+  plantId          String    @map("plant_id")
+  departmentId     String    @map("department_id")
+  materialId       String    @map("material_id")
+  quantity         Float
+  receivedQuantity Float     @default(0) @map("received_quantity")
+  uomId            String    @map("uom_id")
+  unitRate         Float     @map("unit_rate")
+  taxPercent       Float     @default(0) @map("tax_percent")
+  totalAmount      Float     @map("total_amount")
+  deliveryDate     DateTime  @map("delivery_date")
+  paymentTerms     String?   @map("payment_terms")
+  status           String    @default("DRAFT") @map("status")
+  approvalStatus   String    @default("PENDING") @map("approval_status")
+  approvedById     String?   @map("approved_by_id")
+  approvedAt       DateTime? @map("approved_at")
+  approvalReason   String?   @map("approval_reason")
+  cancelReason     String?   @map("cancel_reason")
+  createdAt        DateTime  @default(now()) @map("created_at")
+  updatedAt        DateTime  @updatedAt @map("updated_at")
+  createdBy        String?   @map("created_by")
+
+  company           Company              @relation(fields: [companyId], references: [id], onDelete: Restrict)
+  plant             Plant                @relation(fields: [plantId], references: [id], onDelete: Restrict)
+  department        Department           @relation(fields: [departmentId], references: [id], onDelete: Restrict)
+  pr                PurchaseRequisition? @relation(fields: [prId], references: [id], onDelete: SetNull)
+  supplier          Supplier             @relation(fields: [supplierId], references: [id], onDelete: Restrict)
+  buyer             User                 @relation("PoBuyer", fields: [buyerId], references: [id], onDelete: Restrict)
+  approver          User?                @relation("PoApprover", fields: [approvedById], references: [id], onDelete: SetNull)
+  material          Material             @relation(fields: [materialId], references: [id], onDelete: Restrict)
+  uom               Uom                  @relation(fields: [uomId], references: [id], onDelete: Restrict)
+  gateEntries       GateEntry[]
+  goodsReceiptNotes GoodsReceiptNote[]
+
+  @@map("purchase_orders")
+}
+
+model GateEntry {
+  id               String    @id @default(uuid())
+  gateEntryNumber  String    @unique @map("gate_entry_number")
+  poId             String    @map("po_id")
+  supplierId       String    @map("supplier_id")
+  materialId       String    @map("material_id")
+  vehicleNumber    String    @map("vehicle_number")
+  driverName       String?   @map("driver_name")
+  driverPhone      String?   @map("driver_phone")
+  receivedQuantity Float     @map("received_quantity")
+  gateUserId       String    @map("gate_user_id")
+  companyId        String    @map("company_id")
+  plantId          String    @map("plant_id")
+  status           String    @default("REGISTERED") @map("status")
+  cancelReason     String?   @map("cancel_reason")
+  createdAt        DateTime  @default(now()) @map("created_at")
+  updatedAt        DateTime  @updatedAt @map("updated_at")
+  createdBy        String?   @map("created_by")
+
+  company           Company            @relation(fields: [companyId], references: [id], onDelete: Restrict)
+  plant             Plant              @relation(fields: [plantId], references: [id], onDelete: Restrict)
+  po                PurchaseOrder      @relation(fields: [poId], references: [id], onDelete: Restrict)
+  supplier          Supplier           @relation(fields: [supplierId], references: [id], onDelete: Restrict)
+  material          Material           @relation(fields: [materialId], references: [id], onDelete: Restrict)
+  gateUser          User               @relation("GateUser", fields: [gateUserId], references: [id], onDelete: Restrict)
+  goodsReceiptNotes GoodsReceiptNote[]
+
+  @@map("gate_entries")
+}
+
+model GoodsReceiptNote {
+  id               String   @id @default(uuid())
+  grnNumber        String   @unique @map("grn_number")
+  poId             String   @map("po_id")
+  gateEntryId      String   @map("gate_entry_id")
+  supplierId       String   @map("supplier_id")
+  materialId       String   @map("material_id")
+  receivedQuantity Float    @map("received_quantity")
+  acceptedQuantity Float    @default(0) @map("accepted_quantity")
+  rejectedQuantity Float    @default(0) @map("rejected_quantity")
+  uomId            String   @map("uom_id")
+  unitRate         Float    @map("unit_rate")
+  warehouseId      String   @map("warehouse_id")
+  receiverId       String   @map("receiver_id")
+  companyId        String   @map("company_id")
+  plantId          String   @map("plant_id")
+  status           String   @default("PENDING_QA") @map("status")
+  createdAt        DateTime @default(now()) @map("created_at")
+  updatedAt        DateTime @updatedAt @map("updated_at")
+  createdBy        String?  @map("created_by")
+
+  company           Company            @relation(fields: [companyId], references: [id], onDelete: Restrict)
+  plant             Plant              @relation(fields: [plantId], references: [id], onDelete: Restrict)
+  po                PurchaseOrder      @relation(fields: [poId], references: [id], onDelete: Restrict)
+  gateEntry         GateEntry          @relation(fields: [gateEntryId], references: [id], onDelete: Restrict)
+  supplier          Supplier           @relation(fields: [supplierId], references: [id], onDelete: Restrict)
+  material          Material           @relation(fields: [materialId], references: [id], onDelete: Restrict)
+  uom               Uom                @relation(fields: [uomId], references: [id], onDelete: Restrict)
+  warehouse         Warehouse          @relation(fields: [warehouseId], references: [id], onDelete: Restrict)
+  receiver          User               @relation("GrnReceiver", fields: [receiverId], references: [id], onDelete: Restrict)
+  qaInspections     QaInspection[]
+  stockTransactions StockTransaction[]
+
+  @@map("goods_receipt_notes")
+}
+
+model QaInspection {
+  id                       String   @id @default(uuid())
+  inspectionNumber         String   @unique @map("inspection_number")
+  grnId                    String   @map("grn_id")
+  materialId               String   @map("material_id")
+  inspectedQuantity        Float    @map("inspected_quantity")
+  acceptedQuantity         Float    @map("accepted_quantity")
+  rejectedQuantity         Float    @map("rejected_quantity")
+  holdQuantity             Float    @default(0) @map("hold_quantity")
+  inspectionParametersJson String?  @map("inspection_parameters_json")
+  inspectorId              String   @map("inspector_id")
+  remarks                  String?
+  companyId                String   @map("company_id")
+  plantId                  String   @map("plant_id")
+  status                   String   @default("COMPLETED") @map("status")
+  createdAt                DateTime @default(now()) @map("created_at")
+  updatedAt                DateTime @updatedAt @map("updated_at")
+  createdBy                String?  @map("created_by")
+
+  company           Company            @relation(fields: [companyId], references: [id], onDelete: Restrict)
+  plant             Plant              @relation(fields: [plantId], references: [id], onDelete: Restrict)
+  grn               GoodsReceiptNote   @relation(fields: [grnId], references: [id], onDelete: Restrict)
+  material          Material           @relation(fields: [materialId], references: [id], onDelete: Restrict)
+  inspector         User               @relation("QaInspector", fields: [inspectorId], references: [id], onDelete: Restrict)
+  stockTransactions StockTransaction[]
+
+  @@map("qa_inspections")
+}
+
+model StockBalance {
+  id          String   @id @default(uuid())
+  materialId  String   @map("material_id")
+  warehouseId String   @map("warehouse_id")
+  binId       String?  @map("bin_id")
+  quantity    Float    @default(0)
+  companyId   String   @map("company_id")
+  plantId     String   @map("plant_id")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  company   Company     @relation(fields: [companyId], references: [id], onDelete: Restrict)
+  plant     Plant       @relation(fields: [plantId], references: [id], onDelete: Restrict)
+  material  Material    @relation(fields: [materialId], references: [id], onDelete: Restrict)
+  warehouse Warehouse   @relation(fields: [warehouseId], references: [id], onDelete: Restrict)
+  bin       StorageBin? @relation(fields: [binId], references: [id], onDelete: SetNull)
+
+  @@unique([plantId, warehouseId, materialId])
+  @@map("stock_balances")
+}
+
+model StockTransaction {
+  id                  String   @id @default(uuid())
+  transactionNumber   String   @unique @map("transaction_number")
+  materialId          String   @map("material_id")
+  quantity            Float
+  uomId               String   @map("uom_id")
+  warehouseId         String   @map("warehouse_id")
+  binId               String?  @map("bin_id")
+  transactionType     String   @map("transaction_type")
+  grnId               String?  @map("grn_id")
+  qaId                String?  @map("qa_id")
+  materialIssueId     String?  @map("material_issue_id")
+  productionReceiptId String?  @map("production_receipt_id")
+  userId              String   @map("user_id")
+  companyId           String   @map("company_id")
+  plantId             String   @map("plant_id")
+  referenceNumber     String?  @map("reference_number")
+  createdAt           DateTime @default(now()) @map("created_at")
+
+  company           Company            @relation(fields: [companyId], references: [id], onDelete: Restrict)
+  plant             Plant              @relation(fields: [plantId], references: [id], onDelete: Restrict)
+  material          Material           @relation(fields: [materialId], references: [id], onDelete: Restrict)
+  uom               Uom                @relation(fields: [uomId], references: [id], onDelete: Restrict)
+  warehouse         Warehouse          @relation(fields: [warehouseId], references: [id], onDelete: Restrict)
+  bin               StorageBin?        @relation(fields: [binId], references: [id], onDelete: SetNull)
+  grn               GoodsReceiptNote?  @relation(fields: [grnId], references: [id], onDelete: SetNull)
+  qa                QaInspection?      @relation(fields: [qaId], references: [id], onDelete: SetNull)
+  materialIssue     MaterialIssue?     @relation(fields: [materialIssueId], references: [id], onDelete: SetNull)
+  productionReceipt ProductionReceipt? @relation(fields: [productionReceiptId], references: [id], onDelete: SetNull)
+  user              User               @relation("StockUser", fields: [userId], references: [id], onDelete: Restrict)
+
+  @@map("stock_transactions")
+}
+
+// SPRINT 03 PRODUCTION & GOLDEN FLOW MODELS
+
+model BomHeader {
+  id                 String   @id @default(uuid())
+  bomNumber          String   @unique @map("bom_number")
+  finishedMaterialId String   @map("finished_material_id")
+  version            Int      @default(1)
+  companyId          String   @map("company_id")
+  plantId            String   @map("plant_id")
+  status             String   @default("DRAFT") @map("status")
+  effectiveFrom      DateTime @default(now()) @map("effective_from")
+  effectiveTo        DateTime? @map("effective_to")
+  createdAt          DateTime @default(now()) @map("created_at")
+  updatedAt          DateTime @updatedAt @map("updated_at")
+  createdBy          String?  @map("created_by")
+
+  company          Company               @relation(fields: [companyId], references: [id], onDelete: Restrict)
+  plant            Plant                 @relation(fields: [plantId], references: [id], onDelete: Restrict)
+  finishedMaterial Material              @relation("FinishedMaterial", fields: [finishedMaterialId], references: [id], onDelete: Restrict)
+  components       BomComponent[]
+  workOrders       WorkOrder[]
+  reservations     MaterialReservation[]
+
+  @@map("bom_headers")
+}
+
+model BomComponent {
+  id                  String   @id @default(uuid())
+  bomHeaderId         String   @map("bom_header_id")
+  componentMaterialId String   @map("component_material_id")
+  quantityPerUnit     Float    @map("quantity_per_unit")
+  uomId               String   @map("uom_id")
+  scrapFactor         Float    @default(0) @map("scrap_factor")
+  sequence            Int      @default(1)
+  companyId           String   @map("company_id")
+  plantId             String   @map("plant_id")
+  createdAt           DateTime @default(now()) @map("created_at")
+  updatedAt           DateTime @updatedAt @map("updated_at")
+  createdBy           String?  @map("created_by")
+
+  bomHeader         BomHeader @relation(fields: [bomHeaderId], references: [id], onDelete: Cascade)
+  componentMaterial Material  @relation("ComponentMaterial", fields: [componentMaterialId], references: [id], onDelete: Restrict)
+  uom               Uom       @relation(fields: [uomId], references: [id], onDelete: Restrict)
+  company           Company   @relation(fields: [companyId], references: [id], onDelete: Restrict)
+  plant             Plant     @relation(fields: [plantId], references: [id], onDelete: Restrict)
+
+  @@map("bom_components")
+}
+
+model WorkOrder {
+  id                    String   @id @default(uuid())
+  woNumber              String   @unique @map("wo_number")
+  companyId             String   @map("company_id")
+  plantId               String   @map("plant_id")
+  departmentId          String   @map("department_id")
+  finishedMaterialId    String   @map("finished_material_id")
+  bomHeaderId           String   @map("bom_header_id")
+  plannedQuantity       Float    @map("planned_quantity")
+  uomId                 String   @map("uom_id")
+  plannedStartDate      DateTime @map("planned_start_date")
+  plannedCompletionDate DateTime @map("planned_completion_date")
+  productionLine        String?  @map("production_line")
+  priority              String   @default("MEDIUM")
+  status                String   @default("DRAFT") @map("status")
+  cancelReason          String?  @map("cancel_reason")
+  createdAt             DateTime @default(now()) @map("created_at")
+  updatedAt             DateTime @updatedAt @map("updated_at")
+  createdBy             String?  @map("created_by")
+
+  company              Company               @relation(fields: [companyId], references: [id], onDelete: Restrict)
+  plant                Plant                 @relation(fields: [plantId], references: [id], onDelete: Restrict)
+  department           Department            @relation(fields: [departmentId], references: [id], onDelete: Restrict)
+  finishedMaterial     Material              @relation("WoFinishedMaterial", fields: [finishedMaterialId], references: [id], onDelete: Restrict)
+  bomHeader            BomHeader             @relation(fields: [bomHeaderId], references: [id], onDelete: Restrict)
+  uom                  Uom                   @relation(fields: [uomId], references: [id], onDelete: Restrict)
+  reservations         MaterialReservation[]
+  materialIssues       MaterialIssue[]
+  productionExecutions ProductionExecution[]
+  productionReceipts   ProductionReceipt[]
+  inProcessQaInspections InProcessQaInspection[]
+  nonConformanceReports  NonConformanceReport[]
+
+  @@map("work_orders")
+}
+
+model MaterialReservation {
+  id                String   @id @default(uuid())
+  reservationNumber String   @unique @map("reservation_number")
+  workOrderId       String   @map("work_order_id")
+  bomHeaderId       String   @map("bom_header_id")
+  materialId        String   @map("material_id")
+  requiredQuantity  Float    @map("required_quantity")
+  reservedQuantity  Float    @map("reserved_quantity")
+  warehouseId       String   @map("warehouse_id")
+  binId             String?  @map("bin_id")
+  companyId         String   @map("company_id")
+  plantId           String   @map("plant_id")
+  status            String   @default("RESERVED") @map("status")
+  createdAt         DateTime @default(now()) @map("created_at")
+  updatedAt         DateTime @updatedAt @map("updated_at")
+  createdBy         String?  @map("created_by")
+
+  workOrder      WorkOrder       @relation(fields: [workOrderId], references: [id], onDelete: Restrict)
+  bomHeader      BomHeader       @relation(fields: [bomHeaderId], references: [id], onDelete: Restrict)
+  material       Material        @relation("ReservedMaterial", fields: [materialId], references: [id], onDelete: Restrict)
+  warehouse      Warehouse       @relation(fields: [warehouseId], references: [id], onDelete: Restrict)
+  bin            StorageBin?     @relation(fields: [binId], references: [id], onDelete: SetNull)
+  company        Company         @relation(fields: [companyId], references: [id], onDelete: Restrict)
+  plant          Plant           @relation(fields: [plantId], references: [id], onDelete: Restrict)
+  materialIssues MaterialIssue[]
+
+  @@map("material_reservations")
+}
+
+model MaterialIssue {
+  id             String   @id @default(uuid())
+  issueNumber    String   @unique @map("issue_number")
+  workOrderId    String   @map("work_order_id")
+  reservationId  String?  @map("reservation_id")
+  materialId     String   @map("material_id")
+  issuedQuantity Float    @map("issued_quantity")
+  uomId          String   @map("uom_id")
+  warehouseId    String   @map("warehouse_id")
+  binId          String?  @map("bin_id")
+  issuerId       String   @map("issuer_id")
+  companyId      String   @map("company_id")
+  plantId        String   @map("plant_id")
+  status         String   @default("COMPLETED") @map("status")
+  createdAt      DateTime @default(now()) @map("created_at")
+  updatedAt      DateTime @updatedAt @map("updated_at")
+  createdBy      String?  @map("created_by")
+
+  workOrder         WorkOrder            @relation(fields: [workOrderId], references: [id], onDelete: Restrict)
+  reservation       MaterialReservation? @relation(fields: [reservationId], references: [id], onDelete: SetNull)
+  material          Material             @relation("IssuedMaterial", fields: [materialId], references: [id], onDelete: Restrict)
+  uom               Uom                  @relation(fields: [uomId], references: [id], onDelete: Restrict)
+  warehouse         Warehouse            @relation(fields: [warehouseId], references: [id], onDelete: Restrict)
+  bin               StorageBin?          @relation(fields: [binId], references: [id], onDelete: SetNull)
+  issuer            User                 @relation("MaterialIssuer", fields: [issuerId], references: [id], onDelete: Restrict)
+  company           Company              @relation(fields: [companyId], references: [id], onDelete: Restrict)
+  plant             Plant                @relation(fields: [plantId], references: [id], onDelete: Restrict)
+  stockTransactions StockTransaction[]
+
+  @@map("material_issues")
+}
+
+model ProductionExecution {
+  id                 String   @id @default(uuid())
+  executionNumber    String   @unique @map("execution_number")
+  workOrderId        String   @map("work_order_id")
+  finishedMaterialId String   @map("finished_material_id")
+  plannedQuantity    Float    @map("planned_quantity")
+  executedQuantity   Float    @map("executed_quantity")
+  goodQuantity       Float    @map("good_quantity")
+  rejectedQuantity   Float    @default(0) @map("rejected_quantity")
+  holdQuantity       Float    @default(0) @map("hold_quantity")
+  operatorId         String   @map("operator_id")
+  productionLine     String?  @map("production_line")
+  startTime          DateTime @map("start_time")
+  endTime            DateTime @map("end_time")
+  status             String   @default("COMPLETED") @map("status")
+  remarks            String?
+  companyId          String   @map("company_id")
+  plantId            String   @map("plant_id")
+  createdAt          DateTime @default(now()) @map("created_at")
+  updatedAt          DateTime @updatedAt @map("updated_at")
+  createdBy          String?  @map("created_by")
+
+  workOrder          WorkOrder           @relation(fields: [workOrderId], references: [id], onDelete: Restrict)
+  finishedMaterial   Material            @relation("ExecutionFinishedMaterial", fields: [finishedMaterialId], references: [id], onDelete: Restrict)
+  operator           User                @relation("ProductionOperator", fields: [operatorId], references: [id], onDelete: Restrict)
+  company            Company             @relation(fields: [companyId], references: [id], onDelete: Restrict)
+  plant              Plant               @relation(fields: [plantId], references: [id], onDelete: Restrict)
+  productionReceipts ProductionReceipt[]
+  ipqcInspections    InProcessQaInspection[]
+
+  @@map("production_executions")
+}
+
+model ProductionReceipt {
+  id                 String   @id @default(uuid())
+  receiptNumber      String   @unique @map("receipt_number")
+  workOrderId        String   @map("work_order_id")
+  executionId        String   @map("execution_id")
+  finishedMaterialId String   @map("finished_material_id")
+  receivedQuantity   Float    @map("received_quantity")
+  rejectedQuantity   Float    @default(0) @map("rejected_quantity")
+  holdQuantity       Float    @default(0) @map("hold_quantity")
+  uomId              String   @map("uom_id")
+  warehouseId        String   @map("warehouse_id")
+  binId              String?  @map("bin_id")
+  receiverId         String   @map("receiver_id")
+  companyId          String   @map("company_id")
+  plantId            String   @map("plant_id")
+  status             String   @default("COMPLETED") @map("status")
+  createdAt          DateTime @default(now()) @map("created_at")
+  updatedAt          DateTime @updatedAt @map("updated_at")
+  createdBy          String?  @map("created_by")
+
+  workOrder         WorkOrder           @relation(fields: [workOrderId], references: [id], onDelete: Restrict)
+  execution         ProductionExecution @relation(fields: [executionId], references: [id], onDelete: Restrict)
+  finishedMaterial  Material            @relation("ReceiptFinishedMaterial", fields: [finishedMaterialId], references: [id], onDelete: Restrict)
+  uom               Uom                 @relation(fields: [uomId], references: [id], onDelete: Restrict)
+  warehouse         Warehouse           @relation(fields: [warehouseId], references: [id], onDelete: Restrict)
+  bin               StorageBin?         @relation(fields: [binId], references: [id], onDelete: SetNull)
+  receiver          User                @relation("ProductionReceiver", fields: [receiverId], references: [id], onDelete: Restrict)
+  company           Company             @relation(fields: [companyId], references: [id], onDelete: Restrict)
+  plant             Plant               @relation(fields: [plantId], references: [id], onDelete: Restrict)
+  stockTransactions StockTransaction[]
+
+  @@map("production_receipts")
+}
+
+// SPRINT 04 MODELS (IPQC, NCR/CAPA, Internal Inventory Transfers)
+
+model InProcessQaInspection {
+  id               String   @id @default(uuid())
+  inspectionNumber String   @unique @map("inspection_number")
+  workOrderId      String?  @map("work_order_id")
+  executionId      String?  @map("execution_id")
+  materialId       String   @map("material_id")
+  uomId            String   @map("uom_id")
+  inspectedQuantity Float   @map("inspected_quantity")
+  passedQuantity   Float    @map("passed_quantity")
+  failedQuantity   Float    @default(0) @map("failed_quantity")
+  inspectorId      String   @map("inspector_id")
+  remarks          String?
+  companyId        String   @map("company_id")
+  plantId          String   @map("plant_id")
+  departmentId     String?  @map("department_id")
+  status           String   @default("PASSED") @map("status")
+  inspectionDate   DateTime @default(now()) @map("inspection_date")
+  createdAt        DateTime @default(now()) @map("created_at")
+  updatedAt        DateTime @updatedAt @map("updated_at")
+  createdBy        String?  @map("created_by")
+
+  company               Company                @relation(fields: [companyId], references: [id], onDelete: Restrict)
+  plant                 Plant                  @relation(fields: [plantId], references: [id], onDelete: Restrict)
+  department            Department?            @relation(fields: [departmentId], references: [id], onDelete: SetNull)
+  workOrder             WorkOrder?             @relation(fields: [workOrderId], references: [id], onDelete: SetNull)
+  execution             ProductionExecution?   @relation(fields: [executionId], references: [id], onDelete: SetNull)
+  material              Material               @relation(fields: [materialId], references: [id], onDelete: Restrict)
+  uom                   Uom                    @relation(fields: [uomId], references: [id], onDelete: Restrict)
+  inspector             User                   @relation("IpqcInspector", fields: [inspectorId], references: [id], onDelete: Restrict)
+  nonConformanceReports NonConformanceReport[]
+
+  @@map("in_process_qa_inspections")
+}
+
+model NonConformanceReport {
+  id                String    @id @default(uuid())
+  ncrNumber         String    @unique @map("ncr_number")
+  sourceType        String    @default("IPQC") @map("source_type")
+  sourceRecordId    String?   @map("source_record_id")
+  ipqcId            String?   @map("ipqc_id")
+  workOrderId       String?   @map("work_order_id")
+  materialId        String    @map("material_id")
+  uomId             String?   @map("uom_id")
+  defectType        String    @map("defect_type")
+  defectQuantity    Float     @map("defect_quantity")
+  disposition       String    @default("PENDING") @map("disposition")
+  dispositionReason String?   @map("disposition_reason")
+  reworkWoNumber    String?   @map("rework_wo_number")
+  assignedToId      String?   @map("assigned_to_id")
+  approvedById      String?   @map("approved_by_id")
+  approvedAt        DateTime? @map("approved_at")
+  companyId         String    @map("company_id")
+  plantId           String    @map("plant_id")
+  departmentId      String?   @map("department_id")
+  status            String    @default("OPEN") @map("status")
+  createdAt         DateTime  @default(now()) @map("created_at")
+  updatedAt         DateTime  @updatedAt @map("updated_at")
+  createdBy         String?   @map("created_by")
+
+  company    Company                @relation(fields: [companyId], references: [id], onDelete: Restrict)
+  plant      Plant                  @relation(fields: [plantId], references: [id], onDelete: Restrict)
+  department Department?            @relation(fields: [departmentId], references: [id], onDelete: SetNull)
+  ipqc       InProcessQaInspection? @relation(fields: [ipqcId], references: [id], onDelete: SetNull)
+  workOrder  WorkOrder?             @relation(fields: [workOrderId], references: [id], onDelete: SetNull)
+  material   Material               @relation(fields: [materialId], references: [id], onDelete: Restrict)
+  uom        Uom?                   @relation(fields: [uomId], references: [id], onDelete: SetNull)
+  assignedTo User?                  @relation("NcrAssignedUser", fields: [assignedToId], references: [id], onDelete: SetNull)
+  approver   User?                  @relation("NcrApprover", fields: [approvedById], references: [id], onDelete: SetNull)
+
+  @@map("non_conformance_reports")
+}
+
+model InventoryTransferOrder {
+  id                String    @id @default(uuid())
+  transferNumber    String    @unique @map("transfer_number")
+  sourcePlantId     String    @map("source_plant_id")
+  targetPlantId     String    @map("target_plant_id")
+  sourceWarehouseId String    @map("source_warehouse_id")
+  targetWarehouseId String    @map("target_warehouse_id")
+  sourceBinId       String?   @map("source_bin_id")
+  targetBinId       String?   @map("target_bin_id")
+  materialId        String    @map("material_id")
+  transferQuantity  Float     @map("transfer_quantity")
+  uomId             String    @map("uom_id")
+  status            String    @default("DRAFT") @map("status")
+  cancelReason      String?   @map("cancel_reason")
+  requestedById     String    @map("requested_by_id")
+  approvedById      String?   @map("approved_by_id")
+  approvedAt        DateTime? @map("approved_at")
+  issuedById        String?   @map("issued_by_id")
+  receivedById      String?   @map("received_by_id")
+  companyId         String    @map("company_id")
+  createdAt         DateTime  @default(now()) @map("created_at")
+  updatedAt         DateTime  @updatedAt @map("updated_at")
+  createdBy         String?   @map("created_by")
+
+  company         Company     @relation(fields: [companyId], references: [id], onDelete: Restrict)
+  sourcePlant     Plant       @relation("SourcePlantTransfers", fields: [sourcePlantId], references: [id], onDelete: Restrict)
+  targetPlant     Plant       @relation("TargetPlantTransfers", fields: [targetPlantId], references: [id], onDelete: Restrict)
+  sourceWarehouse Warehouse   @relation("SourceWarehouseTransfers", fields: [sourceWarehouseId], references: [id], onDelete: Restrict)
+  targetWarehouse Warehouse   @relation("TargetWarehouseTransfers", fields: [targetWarehouseId], references: [id], onDelete: Restrict)
+  sourceBin       StorageBin? @relation("SourceBinTransfers", fields: [sourceBinId], references: [id], onDelete: SetNull)
+  targetBin       StorageBin? @relation("TargetBinTransfers", fields: [targetBinId], references: [id], onDelete: SetNull)
+  material        Material    @relation(fields: [materialId], references: [id], onDelete: Restrict)
+  uom             Uom         @relation(fields: [uomId], references: [id], onDelete: Restrict)
+  requestedBy     User        @relation("TransferRequester", fields: [requestedById], references: [id], onDelete: Restrict)
+  approver        User?       @relation("TransferApprover", fields: [approvedById], references: [id], onDelete: SetNull)
+  issuedBy        User?       @relation("TransferIssuer", fields: [issuedById], references: [id], onDelete: SetNull)
+  receivedBy      User?       @relation("TransferReceiver", fields: [receivedById], references: [id], onDelete: SetNull)
+
+  @@map("inventory_transfer_orders")
+}
