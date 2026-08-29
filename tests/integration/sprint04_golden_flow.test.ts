@@ -170,14 +170,20 @@ describe('Sprint 04 — Comprehensive Specification Test Suite (30 Categories)',
 
   // Category 8: SCRAP Disposition
   it('Category 8: SCRAP disposition execution', async () => {
-    const scrapNcr = await prisma.nonConformanceReport.create({
-      data: { ncrNumber: `NCR-SCRAP-${Date.now()}`, materialId: rmAMaterialId, defectType: 'DAMAGED', defectQuantity: 10, companyId: companyAId, plantId: plant1Id, status: 'OPEN', createdBy: 'other-user' },
-    });
-    const res = await request(app).post(`/api/v1/ncr/${scrapNcr.id}/disposition`).set('Authorization', `Bearer ${adminToken}`).send({
-      disposition: 'SCRAP', reason: 'Unsalvageable component defect', warehouseId: warehouseMainId,
+    // Execute SCRAP disposition on autoNcrId (from Category 1 IPQC failure of 5 units)
+    // Stock Before: 1000 units in WH-MAIN
+    const balBefore = await prisma.stockBalance.findFirst({ where: { plantId: plant1Id, warehouseId: warehouseMainId, materialId: rmAMaterialId } });
+    const stockBefore = balBefore!.quantity;
+
+    const res = await request(app).post(`/api/v1/ncr/${autoNcrId}/disposition`).set('Authorization', `Bearer ${adminToken}`).send({
+      disposition: 'SCRAP', reason: 'Unsalvageable component defect from IPQC 5 failed units', warehouseId: warehouseMainId,
     });
     expect(res.status).toBe(200);
     expect(res.body.data.disposition).toBe('SCRAP');
+
+    // Stock After: Stock Before - 5 units (defectQuantity) = 995 units
+    const balAfter = await prisma.stockBalance.findFirst({ where: { plantId: plant1Id, warehouseId: warehouseMainId, materialId: rmAMaterialId } });
+    expect(balAfter!.quantity).toBe(stockBefore - 5);
   });
 
   // Category 9: REWORK Disposition
