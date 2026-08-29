@@ -17,6 +17,9 @@ import { ProductionExecutionManagement } from './components/ProductionExecutionM
 import { ProductionReceiptManagement } from './components/ProductionReceiptManagement';
 import { FinishedGoodsStock } from './components/FinishedGoodsStock';
 import { ProductionReports } from './components/ProductionReports';
+import { IpqcManagement } from './components/IpqcManagement';
+import { NcrManagement } from './components/NcrManagement';
+import { StockTransferManagement } from './components/StockTransferManagement';
 
 const MainApp: React.FC = () => {
   const { token } = useAuth();
@@ -41,6 +44,9 @@ const MainApp: React.FC = () => {
         {activeTab === 'receipts' && <ProductionReceiptManagement />}
         {activeTab === 'fgstock' && <FinishedGoodsStock />}
         {activeTab === 'reports' && <ProductionReports />}
+        {activeTab === 'ipqc' && <IpqcManagement />}
+        {activeTab === 'ncr' && <NcrManagement />}
+        {activeTab === 'transfers' && <StockTransferManagement />}
         {activeTab === 'users' && <UserManagement />}
         {activeTab === 'roles' && <RoleManagement />}
         {activeTab === 'audit' && <AuditTrailViewer />}
