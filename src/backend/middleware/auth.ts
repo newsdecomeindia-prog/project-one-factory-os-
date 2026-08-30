@@ -18,6 +18,11 @@ export interface AuthUserPayload {
   isSuperAdmin: boolean;
 }
 
+export interface AuthRequest extends Request {
+  user?: AuthUserPayload;
+  correlationId?: string;
+}
+
 declare global {
   namespace Express {
     interface Request {
@@ -138,6 +143,9 @@ export const requireAuth = async (req: Request, res: Response, next: NextFunctio
   }
 };
 
+export const authenticateJWT = requireAuth;
+export const authenticateToken = requireAuth;
+
 // RBAC Middleware: Require specific permission
 export const requirePermission = (permissionCode: string) => {
   return (req: Request, res: Response, next: NextFunction) => {
@@ -155,8 +163,6 @@ export const requirePermission = (permissionCode: string) => {
     });
   };
 };
-
-export const authenticateJWT = requireAuth;
 
 export const authorizePermissions = (permissionCodes: string[]) => {
   return (req: Request, res: Response, next: NextFunction) => {

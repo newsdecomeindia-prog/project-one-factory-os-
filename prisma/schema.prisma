@@ -54,6 +54,12 @@ model Company {
   salesOrders            SalesOrder[]
   deliveryPlans          DeliveryPlan[]
   productionRequirements ProductionRequirement[]
+  taxMasters             TaxMaster[]
+  dispatchAdvices        DispatchAdvice[]
+  salesInvoices          SalesInvoice[]
+  gateOutPasses          GateOutPass[]
+  journalHeaders         JournalHeader[]
+  customerPayments       CustomerPayment[]
 
   @@map("companies")
 }
@@ -102,6 +108,11 @@ model Plant {
   salesOrders            SalesOrder[]
   deliveryPlans          DeliveryPlan[]
   productionRequirements ProductionRequirement[]
+  dispatchAdvices        DispatchAdvice[]
+  salesInvoices          SalesInvoice[]
+  gateOutPasses          GateOutPass[]
+  journalHeaders         JournalHeader[]
+  customerPayments       CustomerPayment[]
 
   @@map("plants")
 }
@@ -172,6 +183,12 @@ model User {
   enquiryRequested     SalesEnquiry[]           @relation("EnquiryRequester")
   soCreated            SalesOrder[]             @relation("SoCreatedUser")
   soApproved           SalesOrder[]             @relation("SoApprovedUser")
+  dispatchCreated      DispatchAdvice[]         @relation("DispatchCreatedUser")
+  invoiceCreated       SalesInvoice[]           @relation("InvoiceCreatedUser")
+  invoiceApproved      SalesInvoice[]           @relation("InvoiceApprovedUser")
+  gateOutApproved      GateOutPass[]            @relation("GateOutApprovedUser")
+  journalsPosted       JournalHeader[]          @relation("JournalPostedUser")
+  paymentPosted        CustomerPayment[]        @relation("PaymentPostedUser")
 
   @@map("users")
 }
@@ -442,6 +459,9 @@ model Uom {
   salesOrders          SalesOrder[]
   deliveryPlans        DeliveryPlan[]
   productionRequirements ProductionRequirement[]
+  dispatchAdvices      DispatchAdvice[]
+  salesInvoices        SalesInvoice[]
+  gateOutPasses        GateOutPass[]
 
   @@unique([companyId, uomCode])
   @@map("uoms")
@@ -501,6 +521,7 @@ model Material {
   isPurchaseApplicable Boolean  @default(true) @map("is_purchase_applicable")
   isQaApplicable       Boolean  @default(true) @map("is_qa_applicable")
   isStockApplicable    Boolean  @default(true) @map("is_stock_applicable")
+  unitCost             Float    @default(0) @map("unit_cost")
   companyId            String   @map("company_id")
   status               String   @default("ACTIVE")
   createdAt            DateTime @default(now()) @map("created_at")
@@ -532,6 +553,9 @@ model Material {
   salesOrders          SalesOrder[]
   deliveryPlans        DeliveryPlan[]
   productionRequirements ProductionRequirement[]
+  dispatchAdvices      DispatchAdvice[]
+  salesInvoices        SalesInvoice[]
+  gateOutPasses        GateOutPass[]
 
   @@unique([companyId, materialCode])
   @@map("materials")
@@ -771,6 +795,7 @@ model StockBalance {
   warehouseId String   @map("warehouse_id")
   binId       String?  @map("bin_id")
   quantity    Float    @default(0)
+  unitCost    Float    @default(0) @map("unit_cost")
   companyId   String   @map("company_id")
   plantId     String   @map("plant_id")
   createdAt   DateTime @default(now()) @map("created_at")
@@ -1169,11 +1194,14 @@ model Customer {
   updatedAt        DateTime @updatedAt @map("updated_at")
   createdBy        String?  @map("created_by")
 
-  company          Company          @relation(fields: [companyId], references: [id], onDelete: Restrict)
+  company          Company           @relation(fields: [companyId], references: [id], onDelete: Restrict)
   salesEnquiries   SalesEnquiry[]
   salesQuotations  SalesQuotation[]
   salesOrders      SalesOrder[]
   deliveryPlans    DeliveryPlan[]
+  salesInvoices    SalesInvoice[]
+  gateOutPasses    GateOutPass[]
+  customerPayments CustomerPayment[]
 
   @@unique([companyId, customerCode])
   @@map("customers")
@@ -1270,6 +1298,8 @@ model SalesOrder {
   company                Company                 @relation(fields: [companyId], references: [id], onDelete: Restrict)
   deliveryPlans          DeliveryPlan[]
   productionRequirements ProductionRequirement[]
+  dispatchAdvices        DispatchAdvice[]
+  salesInvoices          SalesInvoice[]
 
   @@map("sales_orders")
 }
@@ -1293,12 +1323,13 @@ model DeliveryPlan {
   updatedAt      DateTime @updatedAt @map("updated_at")
   createdBy      String?  @map("created_by")
 
-  salesOrder SalesOrder @relation(fields: [soId], references: [id], onDelete: Restrict)
-  customer   Customer   @relation(fields: [customerId], references: [id], onDelete: Restrict)
-  plant      Plant      @relation(fields: [plantId], references: [id], onDelete: Restrict)
-  material   Material   @relation(fields: [materialId], references: [id], onDelete: Restrict)
-  uom        Uom        @relation(fields: [uomId], references: [id], onDelete: Restrict)
-  company    Company    @relation(fields: [companyId], references: [id], onDelete: Restrict)
+  salesOrder      SalesOrder       @relation(fields: [soId], references: [id], onDelete: Restrict)
+  customer        Customer         @relation(fields: [customerId], references: [id], onDelete: Restrict)
+  plant           Plant            @relation(fields: [plantId], references: [id], onDelete: Restrict)
+  material        Material         @relation(fields: [materialId], references: [id], onDelete: Restrict)
+  uom             Uom              @relation(fields: [uomId], references: [id], onDelete: Restrict)
+  company         Company          @relation(fields: [companyId], references: [id], onDelete: Restrict)
+  dispatchAdvices DispatchAdvice[]
 
   @@map("delivery_plans")
 }
@@ -1324,4 +1355,211 @@ model ProductionRequirement {
   company    Company    @relation(fields: [companyId], references: [id], onDelete: Restrict)
 
   @@map("production_requirements")
+}
+
+// SPRINT 06 DISPATCH, INVOICING, GATE OUT & FINANCE INTEGRATION MODELS
+
+model TaxMaster {
+  id          String   @id @default(uuid())
+  taxCode     String   @map("tax_code")
+  taxName     String   @map("tax_name")
+  taxRate     Float    @map("tax_rate") // e.g., 18.0 for 18%
+  taxType     String   @default("INTRA_STATE") @map("tax_type") // INTRA_STATE (CGST+SGST) or INTER_STATE (IGST)
+  cgstRate    Float    @default(0) @map("cgst_rate")
+  sgstRate    Float    @default(0) @map("sgst_rate")
+  igstRate    Float    @default(0) @map("igst_rate")
+  description String?
+  companyId   String   @map("company_id")
+  status      String   @default("ACTIVE")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+  createdBy   String?  @map("created_by")
+
+  company       Company        @relation(fields: [companyId], references: [id], onDelete: Restrict)
+  salesInvoices SalesInvoice[]
+
+  @@unique([companyId, taxCode])
+  @@map("tax_masters")
+}
+
+model DispatchAdvice {
+  id               String   @id @default(uuid())
+  dispatchNumber   String   @unique @map("dispatch_number")
+  deliveryPlanId   String   @map("delivery_plan_id")
+  soId             String   @map("so_id")
+  customerId       String   @map("customer_id")
+  plantId          String   @map("plant_id")
+  materialId       String   @map("material_id")
+  uomId            String   @map("uom_id")
+  dispatchQuantity Float    @map("dispatch_quantity")
+  status           String   @default("ISSUED") // ISSUED, INVOICED, COMPLETED, CANCELLED
+  qcStatus         String   @default("ACCEPTED") @map("qc_status")
+  createdById      String   @map("created_by_id")
+  companyId        String   @map("company_id")
+  createdAt        DateTime @default(now()) @map("created_at")
+  updatedAt        DateTime @updatedAt @map("updated_at")
+
+  deliveryPlan  DeliveryPlan   @relation(fields: [deliveryPlanId], references: [id], onDelete: Restrict)
+  salesOrder    SalesOrder     @relation(fields: [soId], references: [id], onDelete: Restrict)
+  plant         Plant          @relation(fields: [plantId], references: [id], onDelete: Restrict)
+  material      Material       @relation(fields: [materialId], references: [id], onDelete: Restrict)
+  uom           Uom            @relation(fields: [uomId], references: [id], onDelete: Restrict)
+  createdUser   User           @relation("DispatchCreatedUser", fields: [createdById], references: [id], onDelete: Restrict)
+  company       Company        @relation(fields: [companyId], references: [id], onDelete: Restrict)
+  salesInvoices SalesInvoice[]
+  gateOutPasses GateOutPass[]
+
+  @@map("dispatch_advices")
+}
+
+model SalesInvoice {
+  id              String    @id @default(uuid())
+  invoiceNumber   String    @unique @map("invoice_number")
+  dispatchId      String    @map("dispatch_id")
+  soId            String    @map("so_id")
+  customerId      String    @map("customer_id")
+  plantId         String    @map("plant_id")
+  materialId      String    @map("material_id")
+  uomId           String    @map("uom_id")
+  quantity        Float
+  unitPrice       Float     @map("unit_price")
+  subtotalAmount  Float     @map("subtotal_amount")
+  taxMasterId     String?   @map("tax_master_id")
+  taxRate         Float     @default(0) @map("tax_rate")
+  taxAmount       Float     @default(0) @map("tax_amount")
+  totalAmount     Float     @map("total_amount")
+  paymentStatus   String    @default("UNPAID") @map("payment_status") // UNPAID, PARTIALLY_PAID, PAID, RECONCILED
+  status          String    @default("ISSUED") // ISSUED, APPROVED, COMPLETED, CANCELLED
+  approvalStatus  String    @default("PENDING") @map("approval_status") // PENDING, APPROVED, REJECTED
+  approvedById    String?   @map("approved_by_id")
+  approvedAt      DateTime? @map("approved_at")
+  createdById     String    @map("created_by_id")
+  companyId       String    @map("company_id")
+  cancelReason    String?   @map("cancel_reason")
+  createdAt       DateTime  @default(now()) @map("created_at")
+  updatedAt       DateTime  @updatedAt @map("updated_at")
+
+  dispatch             DispatchAdvice         @relation(fields: [dispatchId], references: [id], onDelete: Restrict)
+  salesOrder           SalesOrder             @relation(fields: [soId], references: [id], onDelete: Restrict)
+  customer             Customer               @relation(fields: [customerId], references: [id], onDelete: Restrict)
+  plant                Plant                  @relation(fields: [plantId], references: [id], onDelete: Restrict)
+  material             Material               @relation(fields: [materialId], references: [id], onDelete: Restrict)
+  uom                  Uom                    @relation(fields: [uomId], references: [id], onDelete: Restrict)
+  taxMaster            TaxMaster?             @relation(fields: [taxMasterId], references: [id], onDelete: SetNull)
+  createdUser          User                   @relation("InvoiceCreatedUser", fields: [createdById], references: [id], onDelete: Restrict)
+  approvedUser         User?                  @relation("InvoiceApprovedUser", fields: [approvedById], references: [id], onDelete: SetNull)
+  company              Company                @relation(fields: [companyId], references: [id], onDelete: Restrict)
+  gateOutPasses        GateOutPass[]
+  paymentReconciliation PaymentReconciliation[]
+
+  @@map("sales_invoices")
+}
+
+model GateOutPass {
+  id              String    @id @default(uuid())
+  gateOutNumber   String    @unique @map("gate_out_number")
+  invoiceId       String    @map("invoice_id")
+  dispatchId      String    @map("dispatch_id")
+  customerId      String    @map("customer_id")
+  plantId         String    @map("plant_id")
+  materialId      String    @map("material_id")
+  uomId           String    @map("uom_id")
+  quantity        Float
+  vehicleNumber   String    @map("vehicle_number")
+  driverName      String?   @map("driver_name")
+  driverPhone     String?   @map("driver_phone")
+  status          String    @default("EXECUTED") // EXECUTED, REVERSED
+  unitCost        Float     @default(0) @map("unit_cost") // WAC Unit Cost for COGS
+  cogsAmount      Float     @default(0) @map("cogs_amount")
+  approvedById    String?   @map("approved_by_id")
+  companyId       String    @map("company_id")
+  createdAt       DateTime  @default(now()) @map("created_at")
+  updatedAt       DateTime  @updatedAt @map("updated_at")
+
+  invoice      SalesInvoice   @relation(fields: [invoiceId], references: [id], onDelete: Restrict)
+  dispatch     DispatchAdvice @relation(fields: [dispatchId], references: [id], onDelete: Restrict)
+  customer     Customer       @relation(fields: [customerId], references: [id], onDelete: Restrict)
+  plant        Plant          @relation(fields: [plantId], references: [id], onDelete: Restrict)
+  material     Material       @relation(fields: [materialId], references: [id], onDelete: Restrict)
+  uom          Uom            @relation(fields: [uomId], references: [id], onDelete: Restrict)
+  approvedUser User?          @relation("GateOutApprovedUser", fields: [approvedById], references: [id], onDelete: SetNull)
+  company      Company        @relation(fields: [companyId], references: [id], onDelete: Restrict)
+
+  @@map("gate_out_passes")
+}
+
+model JournalHeader {
+  id                  String   @id @default(uuid())
+  journalNumber       String   @unique @map("journal_number")
+  sourceDocumentType  String   @map("source_document_type") // INVOICE, GATE_OUT, PAYMENT, REVERSAL
+  sourceDocumentId    String   @map("source_document_id")
+  postedById          String   @map("posted_by_id")
+  companyId           String   @map("company_id")
+  plantId             String?  @map("plant_id")
+  status              String   @default("POSTED") // POSTED, REVERSED
+  isReversal          Boolean  @default(false) @map("is_reversal")
+  reversingJournalId  String?  @map("reversing_journal_id")
+  reversalReason      String?  @map("reversal_reason")
+  createdAt           DateTime @default(now()) @map("created_at")
+
+  company      Company       @relation(fields: [companyId], references: [id], onDelete: Restrict)
+  plant        Plant?        @relation(fields: [plantId], references: [id], onDelete: SetNull)
+  postedUser   User          @relation("JournalPostedUser", fields: [postedById], references: [id], onDelete: Restrict)
+  lines        JournalLine[]
+
+  @@map("journal_headers")
+}
+
+model JournalLine {
+  id              String   @id @default(uuid())
+  journalHeaderId String   @map("journal_header_id")
+  accountCode     String   @map("account_code") // e.g., 1200 (AR), 4000 (Sales), 5000 (COGS), 1400 (FG Stock), 1010 (Bank)
+  accountName     String   @map("account_name")
+  debitAmount     Float    @default(0) @map("debit_amount")
+  creditAmount    Float    @default(0) @map("credit_amount")
+  lineDescription String?  @map("line_description")
+  companyId       String   @map("company_id")
+
+  journalHeader JournalHeader @relation(fields: [journalHeaderId], references: [id], onDelete: Cascade)
+
+  @@map("journal_lines")
+}
+
+model CustomerPayment {
+  id                 String   @id @default(uuid())
+  paymentNumber      String   @unique @map("payment_number")
+  customerId         String   @map("customer_id")
+  paymentAmount      Float    @map("payment_amount")
+  paymentMethod      String   @default("BANK_TRANSFER") @map("payment_method")
+  paymentReference   String?  @map("payment_reference")
+  paymentDate        DateTime @default(now()) @map("payment_date")
+  status             String   @default("POSTED") // POSTED, RECONCILED, CANCELLED
+  postedById         String   @map("posted_by_id")
+  companyId          String   @map("company_id")
+  plantId            String?  @map("plant_id")
+  unallocatedAmount  Float    @map("unallocated_amount")
+  createdAt          DateTime @default(now()) @map("created_at")
+  updatedAt          DateTime @updatedAt @map("updated_at")
+
+  customer              Customer                @relation(fields: [customerId], references: [id], onDelete: Restrict)
+  company               Company                 @relation(fields: [companyId], references: [id], onDelete: Restrict)
+  plant                 Plant?                  @relation(fields: [plantId], references: [id], onDelete: SetNull)
+  postedUser            User                    @relation("PaymentPostedUser", fields: [postedById], references: [id], onDelete: Restrict)
+  paymentReconciliation PaymentReconciliation[]
+
+  @@map("customer_payments")
+}
+
+model PaymentReconciliation {
+  id                String   @id @default(uuid())
+  paymentId         String   @map("payment_id")
+  invoiceId         String   @map("invoice_id")
+  reconciledAmount  Float    @map("reconciled_amount")
+  companyId         String   @map("company_id")
+  createdAt         DateTime @default(now()) @map("created_at")
+
+  payment CustomerPayment @relation(fields: [paymentId], references: [id], onDelete: Restrict)
+  invoice SalesInvoice    @relation(fields: [invoiceId], references: [id], onDelete: Restrict)
+
+  @@map("payment_reconciliations")
 }

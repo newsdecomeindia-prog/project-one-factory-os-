@@ -25,6 +25,10 @@ import ncrRoutes from './routes/ncrRoutes';
 import stockTransferRoutes from './routes/stockTransferRoutes';
 import customerRoutes from './routes/customerRoutes';
 import salesRoutes from './routes/salesRoutes';
+import { dispatchRoutes } from './routes/dispatchRoutes';
+import { invoiceRoutes } from './routes/invoiceRoutes';
+import { gateOutRoutes } from './routes/gateOutRoutes';
+import { financeRoutes } from './routes/financeRoutes';
 
 dotenv.config();
 
@@ -63,6 +67,12 @@ app.use('/api/v1/stock-transfers', stockTransferRoutes);
 // Sprint 05 Sales & Demand Management Routes
 app.use('/api/v1/customers', customerRoutes);
 app.use('/api/v1/sales', salesRoutes);
+
+// Sprint 06 Dispatch, Sales Invoicing, Gate Out & Finance Routes
+app.use('/api/v1/sales/dispatches', dispatchRoutes);
+app.use('/api/v1/sales/invoices', invoiceRoutes);
+app.use('/api/v1/sales/gate-out', gateOutRoutes);
+app.use('/api/v1/finance', financeRoutes);
 
 // Health Check
 app.get('/api/health', (req, res) => {

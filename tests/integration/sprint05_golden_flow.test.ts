@@ -22,7 +22,15 @@ describe('Sprint 05 — Sales & Demand Management Golden Flow Specification Test
   let salesOrderId: string;
 
   beforeAll(async () => {
-    // Clean Sprint 05 tables
+    // Clean Sprint 06 and 05 tables in correct dependency order
+    await prisma.paymentReconciliation.deleteMany();
+    await prisma.customerPayment.deleteMany();
+    await prisma.gateOutPass.deleteMany();
+    await prisma.journalLine.deleteMany();
+    await prisma.journalHeader.deleteMany();
+    await prisma.salesInvoice.deleteMany();
+    await prisma.dispatchAdvice.deleteMany();
+    await prisma.taxMaster.deleteMany();
     await prisma.productionRequirement.deleteMany();
     await prisma.deliveryPlan.deleteMany();
     await prisma.salesOrder.deleteMany();

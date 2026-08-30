@@ -26,6 +26,11 @@ import { SalesReports } from './components/SalesReports';
 import { IpqcManagement } from './components/IpqcManagement';
 import { NcrManagement } from './components/NcrManagement';
 import { StockTransferManagement } from './components/StockTransferManagement';
+import { DispatchManagement } from './components/DispatchManagement';
+import { SalesInvoiceManagement } from './components/SalesInvoiceManagement';
+import { GateOutManagement } from './components/GateOutManagement';
+import { CustomerPaymentManagement } from './components/CustomerPaymentManagement';
+import { GeneralLedgerViewer } from './components/GeneralLedgerViewer';
 
 const MainApp: React.FC = () => {
   const { token } = useAuth();
@@ -57,6 +62,11 @@ const MainApp: React.FC = () => {
         {activeTab === 'quotations' && <QuotationManagement />}
         {activeTab === 'salesorders' && <SalesOrderManagement />}
         {activeTab === 'deliveryplanning' && <DeliveryPlanningManagement />}
+        {activeTab === 'dispatches' && <DispatchManagement />}
+        {activeTab === 'invoices' && <SalesInvoiceManagement />}
+        {activeTab === 'gateout' && <GateOutManagement />}
+        {activeTab === 'payments' && <CustomerPaymentManagement />}
+        {activeTab === 'gljournals' && <GeneralLedgerViewer />}
         {activeTab === 'salesreports' && <SalesReports />}
         {activeTab === 'reports' && <ProductionReports />}
         {activeTab === 'users' && <UserManagement />}
